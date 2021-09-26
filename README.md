@@ -6,9 +6,11 @@ This repository contains scripts to convert models in huggingface model hub to T
 
 ### DistilBERT models
 
-* `distilbert-base-uncased` → `distilbert_en_uncased_L-6_H-768_A-12` & `distilbert_en_uncased_preprocess`
-* `distilbert-base-cased` → `distilbert_en_cased_L-6_H-768_A-12` & `distilbert_en_cased_preprocess`
-* `distilbert-base-multilingual-cased` → `distilbert_multi_cased_L-6_H-768_A-12` & `distilbert_multi_cased_preprocess`
+| huggingface model hub name           | converted encoder name                  | converted preprocess name           |
+| ------------------------------------ | --------------------------------------- | ----------------------------------- |
+| `distilbert-base-uncased`            | `distilbert_en_uncased_L-6_H-768_A-12`  | `distilbert_en_uncased_preprocess`  |
+| `distilbert-base-cased`              | `distilbert_en_cased_L-6_H-768_A-12`    | `distilbert_en_cased_preprocess`    |
+| `distilbert-base-multilingual-cased` | `distilbert_multi_cased_L-6_H-768_A-12` | `distilbert_multi_cased_preprocess` |
 
 **How to convert above models?**
 
