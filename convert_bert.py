@@ -22,6 +22,7 @@ class TokenizerType(enum.Enum):
 def convert_distilbert(
     model_name: str,
     output_dir: str,
+    output_model_name: str,
     tokenizer_type: TokenizerType = TokenizerType.BERT,
     temp_dir: str = "./tmp",
 ):
@@ -143,7 +144,7 @@ def convert_distilbert(
     np.testing.assert_allclose(tf_output, torch_output, rtol=1e-5, atol=1e-5)
 
     logging.info("Save model")
-    model.save(os.path.join(output_dir, model_name))
+    model.save(os.path.join(output_dir, output_model_name + f"_L-{config['n_layers']}_H-{config['dim']}_A-{config['n_heads']}"))
 
     if tokenizer_type == TokenizerType.BERT:
         vocab_file = os.path.join(temp_dir, "vocab.txt")
@@ -153,7 +154,7 @@ def convert_distilbert(
 
         logging.info(f"do_lower_case: {do_lower_case}")
         preprocessor = create_distilbert_preprocessing(vocab_file=vocab_file, do_lower_case=do_lower_case)
-        preprocessor.save(os.path.join(output_dir, model_name + "_preprocess"))
+        preprocessor.save(os.path.join(output_dir, output_model_name + "_preprocess"))
 
 
 def get_config(name: str) -> Dict[str, Any]:
