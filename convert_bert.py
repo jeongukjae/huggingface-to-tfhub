@@ -149,11 +149,10 @@ def convert_distilbert(
         vocab_file = os.path.join(temp_dir, "vocab.txt")
         urllib_request.urlretrieve(f"https://huggingface.co/{model_name}/resolve/main/vocab.txt", vocab_file)
         tokenizer_config = get_tokenizer_config(model_name)
+        do_lower_case = tokenizer_config["do_lower_case"] if "do_lower_case" in tokenizer_config else False
 
-        preprocessor = create_distilbert_preprocessing(
-            vocab_file=vocab_file,
-            do_lower_case=tokenizer_config["do_lower_case"] if "do_lower_case" in tokenizer_config else False,
-        )
+        logging.info(f"do_lower_case: {do_lower_case}")
+        preprocessor = create_distilbert_preprocessing(vocab_file=vocab_file, do_lower_case=do_lower_case)
         preprocessor.save(os.path.join(output_dir, model_name + "_preprocess"))
 
 
