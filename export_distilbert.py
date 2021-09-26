@@ -1,6 +1,6 @@
-from absl import app, flags, logging
+from absl import app, flags
 
-from hf_to_tf import TokenizerType, convert_distilbert
+from convert_bert import TokenizerType, convert_distilbert
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("model_name", "distilbert-base-uncased", help="model name to export")
