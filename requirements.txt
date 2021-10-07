@@ -4,3 +4,4 @@ black == 21.6b0
 tqdm
 torch
 requests
+sentencepiece
