@@ -1,12 +1,10 @@
 import collections
 import enum
-import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from urllib import request as urllib_request
 
 import numpy as np
-import requests
 import tensorflow as tf
 import tensorflow_text as text
 import torch
@@ -16,6 +14,8 @@ from official.nlp.modeling import layers
 from official.nlp.modeling.layers import text_layers
 from official.nlp.tools import export_tfhub_lib
 from transformers import DistilBertModel
+
+from utils import get_activation, get_config, get_tokenizer_config
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("model_name", "distilbert-base-uncased", help="model name to export")
@@ -165,14 +165,15 @@ def convert_distilbert(
     input_word_ids = tf.random.uniform(shape=[32, 512], minval=1, maxval=config["vocab_size"], dtype=tf.int32).numpy()
     input_mask = tf.random.uniform(shape=[32, 512], minval=0, maxval=2, dtype=tf.int32).numpy()
 
-    torch_output = (
-        torch_model(
-            input_ids=torch.tensor(input_word_ids),
-            attention_mask=torch.tensor(input_mask),
+    with torch.no_grad():
+        torch_output = (
+            torch_model(
+                input_ids=torch.tensor(input_word_ids),
+                attention_mask=torch.tensor(input_mask),
+            )
+            .last_hidden_state.detach()
+            .numpy()
         )
-        .last_hidden_state.detach()
-        .numpy()
-    )
     tf_output = model(
         {
             "input_word_ids": input_word_ids,
@@ -198,31 +199,6 @@ def convert_distilbert(
         logging.info(f"do_lower_case: {do_lower_case}")
         preprocessor = create_distilbert_preprocessing(vocab_file=vocab_file, do_lower_case=do_lower_case)
         preprocessor.save(os.path.join(output_dir, output_model_name + "_preprocess"))
-
-
-def get_config(name: str) -> Dict[str, Any]:
-    url = f"https://huggingface.co/{name}/resolve/main/config.json"
-    response = requests.get(url)
-    if response.status_code != 200:
-        raise ValueError(f"Cannot get config, status code: {response.status_code}, url: {url}")
-
-    return json.loads(response.text)
-
-
-def get_tokenizer_config(name: str):
-    url = f"https://huggingface.co/{name}/resolve/main/tokenizer_config.json"
-    response = requests.get(url)
-    if response.status_code != 200:
-        return {}
-
-    return json.loads(response.text)
-
-
-def get_activation(name: str) -> Callable:
-    if name == "gelu":
-        return lambda x: tf.keras.activations.gelu(x)
-
-    raise ValueError(f"{name} not found")
 
 
 @tf.keras.utils.register_keras_serializable(package="covnerting_tf")
