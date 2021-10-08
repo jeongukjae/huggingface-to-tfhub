@@ -164,7 +164,7 @@ def convert_roberta(
 
     # assertion
     logging.info("Forward models and check outptus")
-    input_word_ids = tf.random.uniform(shape=[32, 128], minval=0, maxval=config["vocab_size"], dtype=tf.int32).numpy()
+    input_word_ids = tf.random.uniform(shape=[32, 128], minval=4, maxval=config["vocab_size"], dtype=tf.int32).numpy()
     input_mask = tf.random.uniform(shape=[32, 128], minval=0, maxval=2, dtype=tf.int32).numpy()
     input_type_ids = tf.random.uniform(shape=[32, 128], minval=0, maxval=config["type_vocab_size"], dtype=tf.int32).numpy()
 
