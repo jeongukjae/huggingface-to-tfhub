@@ -53,6 +53,4 @@ class BertPackInputsSavedModelWrapper(tf.train.Checkpoint):
 
         for ragged_rank in range(1, 3):
             for num_segments in range(1, 3):
-                _ = self.__call__.get_concrete_function(
-                    [tf.RaggedTensorSpec([None] * (ragged_rank + 1), dtype=tf.int32) for _ in range(num_segments)], seq_length=tf.TensorSpec([], tf.int32)
-                )
+                _ = self.__call__.get_concrete_function([tf.RaggedTensorSpec([None] * (ragged_rank + 1), dtype=tf.int32) for _ in range(num_segments)], seq_length=tf.TensorSpec([], tf.int32))
