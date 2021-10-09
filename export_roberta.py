@@ -517,7 +517,24 @@ class XLMSentencepieceTokenizer(layers.SentencepieceTokenizer):
         super().__init__(*args, **kwargs)
 
     def _create_tokenizer(self):
-        return text.SentencepieceTokenizer(model=self._model_serialized_proto, out_type=tf.string, nbest_size=self._nbest_size, alpha=self._alpha)
+        model = sp_model_pb2.ModelProto()
+        model.ParseFromString(self._model_serialized_proto)
+        is_mask_token_exists = any([p.piece == "<mask>" for p in model.pieces])
+        if not is_mask_token_exists:
+            logging.info("Adding mask token")
+            new_piece = sp_model_pb2.ModelProto.SentencePiece()
+            new_piece.piece = "<mask>"
+            new_piece.score = 0.0
+            new_piece.type = sp_model_pb2.ModelProto.SentencePiece.Type.USER_DEFINED
+            model.pieces.insert(3, new_piece)
+            self._model_serialized_proto = model.SerializeToString()
+
+        return text.SentencepieceTokenizer(
+            model=self._model_serialized_proto,
+            out_type=tf.string,
+            nbest_size=self._nbest_size,
+            alpha=self._alpha,
+        )
 
     def _create_special_tokens_dict(self):
         special_tokens = dict(start_of_sequence_id=b"<s>", end_of_segment_id=b"</s>", padding_id=b"<pad>", mask_id=b"<mask>")
@@ -577,7 +594,12 @@ class BPESentencepieceTokenizer(layers.SentencepieceTokenizer):
         super().__init__(*args, **kwargs)
 
     def _create_tokenizer(self):
-        return text.SentencepieceTokenizer(model=self._model_serialized_proto, out_type=tf.string, nbest_size=self._nbest_size, alpha=self._alpha)
+        return text.SentencepieceTokenizer(
+            model=self._model_serialized_proto,
+            out_type=tf.string,
+            nbest_size=self._nbest_size,
+            alpha=self._alpha,
+        )
 
     def call(self, inputs):
         inputs = tf.map_fn(
@@ -727,6 +749,7 @@ def _bpe_to_sentencepiece_proto(tokenizer_config):
     m.normalizer_spec.add_dummy_prefix = False
     m.normalizer_spec.remove_extra_whitespaces = False
     m.pieces.append(_get_piece("<unk>", 0, sp_model_pb2.ModelProto.SentencePiece.Type.UNKNOWN))
+    m.pieces.append(_get_piece("<mask>", 0, sp_model_pb2.ModelProto.SentencePiece.Type.USER_DEFINED))
     for token in tokenizer_config["added_tokens"]:
         if token["content"] == "<unk>":
             continue
