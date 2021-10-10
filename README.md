@@ -4,6 +4,23 @@ This repository contains scripts to convert models in huggingface model hub to T
 
 ## Converted Models
 
+### RoBERTa models
+
+- [huggingface - `roberta-base`](https://huggingface.co/roberta-base)
+  - tfhub: WIP
+- [huggingface - `roberta-large`](https://huggingface.co/roberta-large)
+  - tfhub: WIP
+- [huggingface - `xlm-roberta-base`](https://huggingface.co/xlm-roberta-base)
+  - tfhub: WIP
+- [huggingface - `xlm-roberta-large`](https://huggingface.co/xlm-roberta-large)
+  - tfhub: WIP
+
+**How to convert above models?**
+
+```sh
+./export_roberta_all.sh
+```
+
 ### DistilBERT models
 
 - [huggingface - `distilbert-base-uncased`](https://huggingface.co/distilbert-base-uncased)
@@ -19,7 +36,7 @@ This repository contains scripts to convert models in huggingface model hub to T
 **How to convert above models?**
 
 ```sh
-./export_all_distilbert.sh
+./export_distilbert_all.sh
 ```
 
 I patched `BertEncoder` and `create_preprocessing` in [tensorflow/models](https://github.com/tensorflow/models)(`==2.6.0`) for DistilBERT. (specifically, I removed token type embedding layer and pooler layer) Check `./distilbert.py` for details.
