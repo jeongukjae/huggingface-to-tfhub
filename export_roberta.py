@@ -602,17 +602,27 @@ class BPESentencepieceTokenizer(layers.SentencepieceTokenizer):
         )
 
     def call(self, inputs):
+        regex_pattern = r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+"""
+        inputs = text.regex_split(inputs, delim_regex_pattern=regex_pattern, keep_delim_regex_pattern=regex_pattern)
+
+        def prepare_bpe(x):
+            x = tf.map_fn(lambda y: tf.cast(tf.io.decode_raw(y, out_type=tf.uint8), tf.int32), x, fn_output_signature=tf.RaggedTensorSpec([None], dtype=tf.int32))
+            x = self._bpe_tokens.lookup(x)
+            x = tf.strings.reduce_join(x, axis=-1)
+            return x
+
         inputs = tf.map_fn(
-            lambda x: tf.cast(tf.io.decode_raw(x, out_type=tf.uint8), tf.int32),
+            lambda x: prepare_bpe(x),
             inputs,
-            fn_output_signature=tf.RaggedTensorSpec([None], dtype=tf.int32),
+            fn_output_signature=tf.RaggedTensorSpec([None], dtype=tf.string),
         )
-        inputs = self._bpe_tokens.lookup(inputs)
-        inputs = tf.strings.reduce_join(inputs, axis=-1)
-        tokens = super().call(inputs)
         if self.tokenize_with_offsets:
-            return self._vocab_table.lookup(tokens[0]), tokens[1], tokens[2]
+            tokens, starts, ends = super().call(inputs.flat_values)
+            tokens = inputs.with_flat_values(tokens).merge_dims(-2, -1)
+            return self._vocab_table.lookup(tokens), starts, ends
         else:
+            tokens = super().call(inputs.flat_values)
+            tokens = inputs.with_flat_values(tokens).merge_dims(-2, -1)
             return self._vocab_table.lookup(tokens)
 
     def _create_special_tokens_dict(self):
@@ -755,11 +765,14 @@ def _bpe_to_sentencepiece_proto(tokenizer_config):
             continue
         m.pieces.append(_get_piece(token["content"], 0, sp_model_pb2.ModelProto.SentencePiece.Type.CONTROL))
 
+    offset = -0.1
     for index, merge in enumerate(tokenizer_config["model"]["merges"]):
         token = merge.replace(" ", "")
-        m.pieces.append(_get_piece(token, index * -0.1 - 0.1))
+        m.pieces.append(_get_piece(token, index * -0.1 + offset))
+
+    offset += len(tokenizer_config["model"]["merges"]) * -0.1
     for index, b in enumerate(default_tokens.values()):
-        m.pieces.append(_get_piece(b, index * -0.1 - len(tokenizer_config["model"]["merges"]) * -0.1 - 0.1))
+        m.pieces.append(_get_piece(b, index * -0.1 + offset))
     return m.SerializeToString()
 
 
