@@ -201,7 +201,7 @@ def convert_roberta(
         tokenizer_config = get_tokenizer_config(model_name, filename="tokenizer.json")
         spm_file = os.path.join(temp_dir, "sentencepiece.bpe.model")
         urllib_request.urlretrieve(f"https://huggingface.co/{model_name}/resolve/main/sentencepiece.bpe.model", spm_file)
-        preprocessor = create_roberta_preprocessing(sp_model_file=spm_file, vocabs=[tokenizer_config['model']['vocab'][index][0] for index in range(config['vocab_size'])])
+        preprocessor = create_roberta_preprocessing(sp_model_file=spm_file, vocabs=[tokenizer_config["model"]["vocab"][index][0] for index in range(config["vocab_size"])])
         preprocessor.save(os.path.join(output_dir, output_model_name + "_preprocess"))
     else:
         raise ValueError
@@ -511,7 +511,7 @@ class XLMSentencepieceTokenizer(layers.SentencepieceTokenizer):
                 keys=tf.range(len(vocabs)),
                 values=tf.constant(vocabs),
             ),
-            default_value='<unk>',
+            default_value="<unk>",
         )
 
         super().__init__(*args, **kwargs)
@@ -556,6 +556,7 @@ class XLMSentencepieceTokenizer(layers.SentencepieceTokenizer):
             return self._vocab_table.lookup(tokens[0]), tokens[1], tokens[2]
         else:
             return self._vocab_table.lookup(tokens)
+
 
 class BPESentencepieceTokenizer(layers.SentencepieceTokenizer):
     def __init__(

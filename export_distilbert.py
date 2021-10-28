@@ -457,7 +457,7 @@ def create_distilbert_preprocessing(
         tokenize = layers.SentencepieceTokenizer(
             model_file_path=sp_model_file,
             lower_case=do_lower_case,
-            strip_diacritics=True,  #  Strip diacritics to follow ALBERT model.
+            strip_diacritics=True,  # Strip diacritics to follow ALBERT model.
             tokenize_with_offsets=tokenize_with_offsets,
         )
 
