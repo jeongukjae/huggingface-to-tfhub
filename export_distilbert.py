@@ -12,10 +12,9 @@ from absl import app, flags, logging
 from official.nlp.keras_nlp import layers as keras_layers
 from official.nlp.modeling import layers
 from official.nlp.modeling.layers import text_layers
-from official.nlp.tools import export_tfhub_lib
 from transformers import DistilBertModel
 
-from utils import get_activation, get_config, get_tokenizer_config
+from utils import BertPackInputsSavedModelWrapper, get_activation, get_config, get_tokenizer_config
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("model_name", "distilbert-base-uncased", help="model name to export")
@@ -492,7 +491,7 @@ def create_distilbert_preprocessing(
     # preprocessing.bert_pack_inputs = tf.keras.Model(tokens, model_inputs)
     # but technicalities require us to use a wrapper (see comments there).
     # In particular, seq_length can be overridden when calling this.
-    preprocessing.bert_pack_inputs = export_tfhub_lib.BertPackInputsSavedModelWrapper(pack)
+    preprocessing.bert_pack_inputs = BertPackInputsSavedModelWrapper(pack, pack.bert_pack_inputs)
 
     return preprocessing
 
