@@ -13,13 +13,13 @@ def main(argv):
     encoder = hub.load(FLAGS.encoder)
     preprocess = hub.load(FLAGS.preprocess)
 
-    def _forward_pass_and_print(is_single_segment, segment_length, trainable):
+    def _forward_pass_and_print(is_single_segment, seq_length, trainable):
         logging.info("Testing forward pass")
-        logging.info(f"is_single_segment?: {is_single_segment}, segment_length: {segment_length}, trainable: {trainable}")
+        logging.info(f"is_single_segment?: {is_single_segment}, seq_length: {seq_length}, trainable: {trainable}")
         encoder_model = hub.KerasLayer(encoder)
         preprocess_args = dict()
-        if segment_length:
-            preprocess_args["seq_length"] = segment_length
+        if seq_length:
+            preprocess_args["seq_length"] = seq_length
 
         if is_single_segment:
             inputs = tf.keras.Input([], dtype=tf.string)
@@ -40,12 +40,12 @@ def main(argv):
         model.summary()
 
     for is_single_segment in (True, False):
-        for segment_length in (30, None):
+        for seq_length in (30, None):
             for trainable in (True, None):
-                if is_single_segment and segment_length is not None:
+                if is_single_segment and seq_length is not None:
                     continue
 
-                _forward_pass_and_print(is_single_segment, segment_length, trainable)
+                _forward_pass_and_print(is_single_segment, seq_length, trainable)
 
 
 if __name__ == "__main__":
