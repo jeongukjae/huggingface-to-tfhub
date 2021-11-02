@@ -35,6 +35,7 @@ def main(argv):
 class TokenizerType(enum.Enum):
     BPE = "bpe"
     XLM_SPM = "xlm-spm"
+    BERT = "bert"
 
 
 def convert_roberta(
@@ -195,13 +196,22 @@ def convert_roberta(
         tokenizer_config = get_tokenizer_config(model_name, filename="tokenizer.json")
         tokenizer_config["model"]["vocab"] = {k.replace("Ġ", "▁"): v for k, v in tokenizer_config["model"]["vocab"].items()}
         tokenizer_config["model"]["merges"] = [merge.replace("Ġ", "▁") for merge in tokenizer_config["model"]["merges"]]
-        preprocessor = create_roberta_preprocessing(bpe_tokenizer_config=tokenizer_config)
+        preprocessor = create_roberta_preprocessing(tokenizer_type, bpe_tokenizer_config=tokenizer_config)
         preprocessor.save(os.path.join(output_dir, output_model_name + "_preprocess"))
     elif tokenizer_type == TokenizerType.XLM_SPM:
         tokenizer_config = get_tokenizer_config(model_name, filename="tokenizer.json")
         spm_file = os.path.join(temp_dir, "sentencepiece.bpe.model")
         urllib_request.urlretrieve(f"https://huggingface.co/{model_name}/resolve/main/sentencepiece.bpe.model", spm_file)
-        preprocessor = create_roberta_preprocessing(sp_model_file=spm_file, vocabs=[tokenizer_config["model"]["vocab"][index][0] for index in range(config["vocab_size"])])
+        preprocessor = create_roberta_preprocessing(tokenizer_type, sp_model_file=spm_file, vocabs=[tokenizer_config["model"]["vocab"][index][0] for index in range(config["vocab_size"])])
+        preprocessor.save(os.path.join(output_dir, output_model_name + "_preprocess"))
+    elif tokenizer_type == TokenizerType.BERT:
+        vocab_file = os.path.join(temp_dir, "vocab.txt")
+        urllib_request.urlretrieve(f"https://huggingface.co/{model_name}/resolve/main/vocab.txt", vocab_file)
+        tokenizer_config = get_tokenizer_config(model_name)
+        do_lower_case = tokenizer_config["do_lower_case"] if "do_lower_case" in tokenizer_config else False
+
+        logging.info(f"do_lower_case: {do_lower_case}")
+        preprocessor = create_roberta_preprocessing(tokenizer_type, vocab_file=vocab_file, do_lower_case=do_lower_case)
         preprocessor.save(os.path.join(output_dir, output_model_name + "_preprocess"))
     else:
         raise ValueError
@@ -431,7 +441,9 @@ class RobertaEncoder(tf.keras.Model):
 
 
 def create_roberta_preprocessing(
+    tokenizer_type: TokenizerType,
     *,
+    vocab_file: str = None,
     do_lower_case: bool = False,
     bpe_tokenizer_config: Optional[dict] = None,
     vocabs: Optional[List] = None,
@@ -440,9 +452,8 @@ def create_roberta_preprocessing(
     default_seq_length: int = 128,
 ) -> tf.keras.Model:
     # Select tokenizer.
-    if bool(bpe_tokenizer_config) == bool(sp_model_file):
-        raise ValueError("Must set exactly one of bpe_tokenizer_config, sp_model_file")
-    if bpe_tokenizer_config:
+    if tokenizer_type == TokenizerType.BPE:
+        assert bpe_tokenizer_config
         tokenize = BPESentencepieceTokenizer(
             model_serialized_proto=_bpe_to_sentencepiece_proto(tokenizer_config=bpe_tokenizer_config),
             lower_case=False,
@@ -450,7 +461,7 @@ def create_roberta_preprocessing(
             tokenize_with_offsets=True,
             strip_diacritics=False,
         )
-    else:
+    elif tokenizer_type == TokenizerType.XLM_SPM:
         assert vocabs
         tokenize = XLMSentencepieceTokenizer(
             model_file_path=sp_model_file,
@@ -458,6 +469,15 @@ def create_roberta_preprocessing(
             lower_case=do_lower_case,
             tokenize_with_offsets=tokenize_with_offsets,
         )
+    elif tokenizer_type == TokenizerType.BERT:
+        assert vocab_file
+        tokenize = layers.BertTokenizer(
+            vocab_file=vocab_file,
+            lower_case=do_lower_case,
+            tokenize_with_offsets=tokenize_with_offsets,
+        )
+    else:
+        raise ValueError
 
     # The root object of the preprocessing model can be called to do
     # one-shot preprocessing for users with single-sentence inputs.
