@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -ex
+export COPYFILE_DISABLE=1
 
 base_path=models
 for directory in `ls $base_path`; do
