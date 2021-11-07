@@ -16,7 +16,7 @@ def main(argv):
     def _forward_pass_and_print(is_single_segment, seq_length, trainable):
         logging.info("Testing forward pass")
         logging.info(f"is_single_segment?: {is_single_segment}, seq_length: {seq_length}, trainable: {trainable}")
-        encoder_model = hub.KerasLayer(encoder)
+        encoder_model = hub.KerasLayer(encoder, trainable=trainable)
         preprocess_args = dict()
         if seq_length:
             preprocess_args["seq_length"] = seq_length
