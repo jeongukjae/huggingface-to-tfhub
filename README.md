@@ -43,13 +43,13 @@ This repository contains scripts to convert models in huggingface model hub to T
 ./export_distilbert_all.sh
 ```
 
-### DistilKoBERT models
+### DistilKoBERT model
 
 - [huggingface - `monologg/distilkobert`](https://huggingface.co/monologg/distilkobert)
   - encoder: [tfhub - `jeongukjae/distilkobert_cased_L-3_H-768_A-12`](https://tfhub.dev/jeongukjae/distilkobert_cased_L-3_H-768_A-12/1)
   - preprocessor: [tfhub - `jeongukjae/distilkobert_cased_preprocess`](https://tfhub.dev/jeongukjae/distilkobert_cased_preprocess/1)
 
-**How to convert above models?**
+**How to convert above model?**
 
 ```sh
 ./export_distilkobert.sh
