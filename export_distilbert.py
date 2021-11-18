@@ -166,22 +166,22 @@ def convert_distilbert(
     input_word_ids = tf.random.uniform(shape=[32, 512], minval=1, maxval=config["vocab_size"], dtype=tf.int32).numpy()
     input_mask = tf.random.uniform(shape=[32, 512], minval=0, maxval=2, dtype=tf.int32).numpy()
 
-    # with torch.no_grad():
-    #     torch_output = (
-    #         torch_model(
-    #             input_ids=torch.tensor(input_word_ids),
-    #             attention_mask=torch.tensor(input_mask),
-    #         )
-    #         .last_hidden_state.detach()
-    #         .numpy()
-    #     )
-    # tf_output = model(
-    #     {
-    #         "input_word_ids": input_word_ids,
-    #         "input_mask": input_mask,
-    #     }
-    # )["sequence_output"].numpy()
-    # np.testing.assert_allclose(tf_output, torch_output, rtol=1e-4, atol=1e-4)
+    with torch.no_grad():
+        torch_output = (
+            torch_model(
+                input_ids=torch.tensor(input_word_ids),
+                attention_mask=torch.tensor(input_mask),
+            )
+            .last_hidden_state.detach()
+            .numpy()
+        )
+    tf_output = model(
+        {
+            "input_word_ids": input_word_ids,
+            "input_mask": input_mask,
+        }
+    )["sequence_output"].numpy()
+    np.testing.assert_allclose(tf_output, torch_output, rtol=1e-4, atol=1e-4)
 
     logging.info("Save model")
     model.save(
