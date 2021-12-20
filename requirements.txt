@@ -3,5 +3,6 @@ tensorflow-text
 black == 21.6b0
 tqdm
 torch
+transformers
 requests
 sentencepiece
