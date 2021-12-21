@@ -31,7 +31,7 @@ def main(argv):
 class TokenizerType(enum.Enum):
     BPE = "bpe"
     XLM_SPM = "xlm-spm"
-    BERT = "bert"
+    KLUE = "klue"
 
 
 def convert_roberta(
@@ -200,7 +200,7 @@ def convert_roberta(
         urllib_request.urlretrieve(f"https://huggingface.co/{model_name}/resolve/main/sentencepiece.bpe.model", spm_file)
         preprocessor = create_roberta_preprocessing(tokenizer_type, sp_model_file=spm_file, vocabs=[tokenizer_config["model"]["vocab"][index][0] for index in range(config["vocab_size"])])
         preprocessor.save(os.path.join(output_dir, output_model_name + "_preprocess"))
-    elif tokenizer_type == TokenizerType.BERT:
+    elif tokenizer_type == TokenizerType.KLUE:
         vocab_file = os.path.join(temp_dir, "vocab.txt")
         urllib_request.urlretrieve(f"https://huggingface.co/{model_name}/resolve/main/vocab.txt", vocab_file)
         tokenizer_config = get_tokenizer_config(model_name)
@@ -465,7 +465,7 @@ def create_roberta_preprocessing(
             lower_case=do_lower_case,
             tokenize_with_offsets=tokenize_with_offsets,
         )
-    elif tokenizer_type == TokenizerType.BERT:
+    elif tokenizer_type == TokenizerType.KLUE:
         assert vocab_file
         tokenize = layers.BertTokenizer(
             vocab_file=vocab_file,
@@ -487,6 +487,7 @@ def create_roberta_preprocessing(
     pack = RobertaPackInputs(
         seq_length=default_seq_length,
         special_tokens_dict=tokenize.get_special_tokens_dict(),
+        double_sep_token_between_segments=tokenizer_type != TokenizerType.KLUE,
     )
     model_inputs = pack(tokens)
     preprocessing = tf.keras.Model(sentences, model_inputs)
@@ -658,13 +659,25 @@ class BPESentencepieceTokenizer(layers.SentencepieceTokenizer):
 
 
 class RobertaPackInputs(tf.keras.layers.Layer):
-    def __init__(self, seq_length, *, start_of_sequence_id=None, end_of_segment_id=None, padding_id=None, special_tokens_dict=None, truncator="round_robin", **kwargs):
+    def __init__(
+        self,
+        seq_length,
+        *,
+        start_of_sequence_id=None,
+        end_of_segment_id=None,
+        padding_id=None,
+        special_tokens_dict=None,
+        truncator="round_robin",
+        double_sep_token_between_segments=True,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.seq_length = seq_length
         if truncator not in ("round_robin", "waterfall"):
             raise ValueError("Only 'round_robin' and 'waterfall' algorithms are " "supported, but got %s" % truncator)
         self.truncator = truncator
         self._init_token_ids(start_of_sequence_id=start_of_sequence_id, end_of_segment_id=end_of_segment_id, padding_id=padding_id, special_tokens_dict=special_tokens_dict)
+        self._double_sep_token_between_segments = double_sep_token_between_segments
 
     def _init_token_ids(self, *, start_of_sequence_id, end_of_segment_id, padding_id, special_tokens_dict):
         usage = "Must pass either all of start_of_sequence_id, end_of_segment_id, " "padding_id as arguments, or else a special_tokens_dict " "with those keys."
@@ -689,27 +702,13 @@ class RobertaPackInputs(tf.keras.layers.Layer):
         config["end_of_segment_id"] = self.end_of_segment_id
         config["padding_id"] = self.padding_id
         config["truncator"] = self.truncator
+        config["double_sep_token_between_segments"] = self._double_sep_token_between_segments
         return config
 
     def call(self, inputs: Union[tf.RaggedTensor, List[tf.RaggedTensor]]):
-        return RobertaPackInputs.roberta_pack_inputs(
-            inputs,
-            self.seq_length,
-            start_of_sequence_id=self.start_of_sequence_id,
-            end_of_segment_id=self.end_of_segment_id,
-            padding_id=self.padding_id,
-            truncator=self.truncator,
-        )
+        return self.roberta_pack_inputs(inputs, self.seq_length)
 
-    @staticmethod
-    def roberta_pack_inputs(
-        inputs: Union[tf.RaggedTensor, List[tf.RaggedTensor]],
-        seq_length: Union[int, tf.Tensor],
-        start_of_sequence_id: Union[int, tf.Tensor],
-        end_of_segment_id: Union[int, tf.Tensor],
-        padding_id: Union[int, tf.Tensor],
-        truncator="round_robin",
-    ):
+    def roberta_pack_inputs(self, inputs: Union[tf.RaggedTensor, List[tf.RaggedTensor]], seq_length: Union[int, tf.Tensor]):
         # Sanitize inputs.
         if not isinstance(inputs, (list, tuple)):
             inputs = [inputs]
@@ -724,29 +723,33 @@ class RobertaPackInputs(tf.keras.layers.Layer):
         # In case inputs weren't truncated (as they should have been),
         # fall back to some ad-hoc truncation.
 
-        # For Roberta,
+        # For Roberta(except klue-roberta),
         # we will encode a single segment as "<s> sentence </s>",
         # and multi segments as "<s> sentence1 </s></s> sentence2 </s>"
-        num_special_tokens = len(inputs) * 2
-        if truncator == "round_robin":
+        if self._double_sep_token_between_segments:
+            num_special_tokens = len(inputs) * 2
+        else:
+            num_special_tokens = len(inputs) + 1
+        if self.truncator == "round_robin":
             trimmed_segments = text.RoundRobinTrimmer(seq_length - num_special_tokens).trim(inputs)
-        elif truncator == "waterfall":
+        elif self.truncator == "waterfall":
             trimmed_segments = text.WaterfallTrimmer(seq_length - num_special_tokens).trim(inputs)
         else:
-            raise ValueError("Unsupported truncator: %s" % truncator)
+            raise ValueError("Unsupported truncator: %s" % self.truncator)
 
-        # We should insert two end_of_segment_id between segments
-        def push_end_of_segment_id(segment):
-            eos_tokens = tf.expand_dims(tf.repeat(end_of_segment_id, segment.nrows()), -1)
-            eos_tokens = tf.cast(eos_tokens, segment.dtype)
-            return tf.concat([eos_tokens, segment], axis=-1)
+        if self._double_sep_token_between_segments:
+            # We should insert two end_of_segment_id between segments
+            def push_end_of_segment_id(segment):
+                eos_tokens = tf.expand_dims(tf.repeat(self.end_of_segment_id, segment.nrows()), -1)
+                eos_tokens = tf.cast(eos_tokens, segment.dtype)
+                return tf.concat([eos_tokens, segment], axis=-1)
 
-        trimmed_segments = [(segment if segment_index == 0 else push_end_of_segment_id(segment)) for segment_index, segment in enumerate(trimmed_segments)]
+            trimmed_segments = [(segment if segment_index == 0 else push_end_of_segment_id(segment)) for segment_index, segment in enumerate(trimmed_segments)]
 
         # Combine segments.
-        segments_combined, segment_ids = text.combine_segments(trimmed_segments, start_of_sequence_id=start_of_sequence_id, end_of_segment_id=end_of_segment_id)
+        segments_combined, segment_ids = text.combine_segments(trimmed_segments, start_of_sequence_id=self.start_of_sequence_id, end_of_segment_id=self.end_of_segment_id)
         # Pad to dense Tensors.
-        input_word_ids, _ = text.pad_model_inputs(segments_combined, seq_length, pad_value=padding_id)
+        input_word_ids, _ = text.pad_model_inputs(segments_combined, seq_length, pad_value=self.padding_id)
         # TODO Because almost Roberta model has type_vocab_size 1, for now, we just make input_type_ids with tf.zeros
         input_type_ids = tf.zeros_like(input_word_ids, dtype=tf.int32)
         _, input_mask = text.pad_model_inputs(segment_ids, seq_length, pad_value=0)
