@@ -17,6 +17,7 @@ from utils import get_activation, get_config, get_tokenizer_config
 
 FLAGS = flags.FLAGS
 
+
 def main(argv):
     convert_bert(
         model_name=FLAGS.model_name,
