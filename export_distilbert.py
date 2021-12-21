@@ -652,24 +652,9 @@ class DistilBertPackInputs(tf.keras.layers.Layer):
           A nest of Tensors for use as input to the BERT TransformerEncoder.
         """
         # DistilBertPackInputsSavedModelWrapper relies on only calling bert_pack_inputs()
-        return DistilBertPackInputs.bert_pack_inputs(
-            inputs,
-            self.seq_length,
-            start_of_sequence_id=self.start_of_sequence_id,
-            end_of_segment_id=self.end_of_segment_id,
-            padding_id=self.padding_id,
-            truncator=self.truncator,
-        )
+        return self.bert_pack_inputs(inputs, self.seq_length)
 
-    @staticmethod
-    def bert_pack_inputs(
-        inputs: Union[tf.RaggedTensor, List[tf.RaggedTensor]],
-        seq_length: Union[int, tf.Tensor],
-        start_of_sequence_id: Union[int, tf.Tensor],
-        end_of_segment_id: Union[int, tf.Tensor],
-        padding_id: Union[int, tf.Tensor],
-        truncator="round_robin",
-    ):
+    def bert_pack_inputs(self, inputs: Union[tf.RaggedTensor, List[tf.RaggedTensor]], seq_length: Union[int, tf.Tensor]):
         """Freestanding equivalent of the DistilBertPackInputs layer."""
         # Sanitize inputs.
         if not isinstance(inputs, (list, tuple)):
@@ -685,20 +670,20 @@ class DistilBertPackInputs(tf.keras.layers.Layer):
         # In case inputs weren't truncated (as they should have been),
         # fall back to some ad-hoc truncation.
         num_special_tokens = len(inputs) + 1
-        if truncator == "round_robin":
+        if self.truncator == "round_robin":
             trimmed_segments = text_layers.round_robin_truncate_inputs(inputs, seq_length - num_special_tokens)
-        elif truncator == "waterfall":
+        elif self.truncator == "waterfall":
             trimmed_segments = text.WaterfallTrimmer(seq_length - num_special_tokens).trim(inputs)
         else:
-            raise ValueError("Unsupported truncator: %s" % truncator)
+            raise ValueError("Unsupported truncator: %s" % self.truncator)
         # Combine segments.
         segments_combined, segment_ids = text.combine_segments(
             trimmed_segments,
-            start_of_sequence_id=start_of_sequence_id,
-            end_of_segment_id=end_of_segment_id,
+            start_of_sequence_id=self.start_of_sequence_id,
+            end_of_segment_id=self.end_of_segment_id,
         )
         # Pad to dense Tensors.
-        input_word_ids, _ = text.pad_model_inputs(segments_combined, seq_length, pad_value=padding_id)
+        input_word_ids, _ = text.pad_model_inputs(segments_combined, seq_length, pad_value=self.padding_id)
         _, input_mask = text.pad_model_inputs(segment_ids, seq_length, pad_value=0)
         # Work around broken shape inference.
         output_shape = tf.stack([inputs[0].nrows(out_type=tf.int32), tf.cast(seq_length, dtype=tf.int32)])  # batch_size

@@ -41,13 +41,7 @@ class BertPackInputsSavedModelWrapper(tf.train.Checkpoint):
 
         @tf.function(autograph=False)
         def call(inputs, seq_length=default_seq_length):
-            return bert_pack_inputs_fn(
-                inputs,
-                seq_length=seq_length,
-                start_of_sequence_id=bert_pack_inputs.start_of_sequence_id,
-                end_of_segment_id=bert_pack_inputs.end_of_segment_id,
-                padding_id=bert_pack_inputs.padding_id,
-            )
+            return bert_pack_inputs_fn(inputs, seq_length=seq_length)
 
         self.__call__ = call
 
