@@ -17,12 +17,6 @@ from transformers import DistilBertModel
 from utils import BertPackInputsSavedModelWrapper, get_activation, get_config, get_tokenizer_config
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("model_name", "distilbert-base-uncased", help="model name to export")
-flags.DEFINE_string("output_dir", "./models", help="output dir")
-flags.DEFINE_string("output_model_name", "distilbert_en_uncased", help="output model name")
-flags.DEFINE_string("tokenizer_type", "bert", help="tokenizer type")
-flags.DEFINE_string("spm_path", "tokenizer.model", help="sentencepiece model file name on huggingface model hub")
-flags.DEFINE_string("padding_token", "<pad>", help="update this flag if the model use different padding token")
 
 
 def main(argv):
@@ -717,4 +711,11 @@ class DistilBertPackInputs(tf.keras.layers.Layer):
 
 
 if __name__ == "__main__":
+    flags.DEFINE_string("model_name", "distilbert-base-uncased", help="model name to export")
+    flags.DEFINE_string("output_dir", "./models", help="output dir")
+    flags.DEFINE_string("output_model_name", "distilbert_en_uncased", help="output model name")
+    flags.DEFINE_string("tokenizer_type", "bert", help="tokenizer type")
+    flags.DEFINE_string("spm_path", "tokenizer.model", help="sentencepiece model file name on huggingface model hub")
+    flags.DEFINE_string("padding_token", "<pad>", help="update this flag if the model use different padding token")
+
     app.run(main)

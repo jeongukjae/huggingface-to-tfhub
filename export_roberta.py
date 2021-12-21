@@ -17,10 +17,6 @@ from transformers import RobertaModel
 from utils import BertPackInputsSavedModelWrapper, get_activation, get_config, get_tokenizer_config
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("model_name", "roberta-base", help="model name to export")
-flags.DEFINE_string("output_dir", "./models", help="output dir")
-flags.DEFINE_string("output_model_name", "roberta_en_uncased", help="output model name")
-flags.DEFINE_string("tokenizer_type", "bpe", help="tokenizer type")
 
 
 def main(argv):
@@ -827,4 +823,9 @@ def _bytes_to_unicode():
 
 
 if __name__ == "__main__":
+    flags.DEFINE_string("model_name", "roberta-base", help="model name to export")
+    flags.DEFINE_string("output_dir", "./models", help="output dir")
+    flags.DEFINE_string("output_model_name", "roberta_en_uncased", help="output model name")
+    flags.DEFINE_string("tokenizer_type", "bpe", help="tokenizer type")
+
     app.run(main)

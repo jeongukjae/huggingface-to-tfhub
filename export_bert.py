@@ -16,11 +16,6 @@ from transformers import BertModel
 from utils import get_activation, get_config, get_tokenizer_config
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("model_name", "klue/bert-base", help="model name to export")
-flags.DEFINE_string("output_dir", "./models", help="output dir")
-flags.DEFINE_string("output_model_name", "klue_bert_cased", help="output model name")
-flags.DEFINE_string("tokenizer_type", "bert", help="tokenizer type")
-
 
 def main(argv):
     convert_bert(
@@ -260,4 +255,9 @@ def create_bert_preprocessing(
 
 
 if __name__ == "__main__":
+    flags.DEFINE_string("model_name", "klue/bert-base", help="model name to export")
+    flags.DEFINE_string("output_dir", "./models", help="output dir")
+    flags.DEFINE_string("output_model_name", "klue_bert_cased", help="output model name")
+    flags.DEFINE_string("tokenizer_type", "bert", help="tokenizer type")
+
     app.run(main)
