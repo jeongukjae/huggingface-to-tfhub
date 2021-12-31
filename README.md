@@ -54,3 +54,24 @@ This repository contains scripts to convert models in huggingface model hub to T
 ```sh
 ./export_distilkobert.sh
 ```
+
+### KLUE PLMs
+
+- [huggingface - `klue/roberta-small`](https://huggingface.co/klue/roberta-small)
+  - encoder: [tfhub - `jeongukjae/klue_roberta_cased_L-6_H-768_A-12`](https://tfhub.dev/jeongukjae/klue_roberta_cased_L-6_H-768_A-12/1)
+  - preprocessor: [tfhub - `jeongukjae/klue_roberta_cased_preprocess`](https://tfhub.dev/jeongukjae/klue_roberta_cased_preprocess/1)
+- [huggingface - `klue/roberta-base`](https://huggingface.co/klue/roberta-base)
+  - encoder: [tfhub - `jeongukjae/klue_roberta_cased_L-12_H-768_A-12`](https://tfhub.dev/jeongukjae/klue_roberta_cased_L-12_H-768_A-12/1)
+  - preprocessor: [tfhub - `jeongukjae/klue_roberta_cased_preprocess`](https://tfhub.dev/jeongukjae/klue_roberta_cased_preprocess/1)
+- [huggingface - `klue/roberta-large`](https://huggingface.co/klue/roberta-large)
+  - encoder: [tfhub - `jeongukjae/klue_roberta_cased_L-24_H-1024_A-16`](https://tfhub.dev/jeongukjae/klue_roberta_cased_L-24_H-1024_A-16/1)
+  - preprocessor: [tfhub - `jeongukjae/klue_roberta_cased_preprocess`](https://tfhub.dev/jeongukjae/klue_roberta_cased_preprocess/1)
+- [huggingface - `klue/bert-base`](https://huggingface.co/klue/bert-base)
+  - encoder: [tfhub - `jeongukjae/klue_bert_cased_L-12_H-768_A-12`](https://tfhub.dev/jeongukjae/klue_bert_cased_L-12_H-768_A-12/1)
+  - preprocessor: [tfhub - `jeongukjae/klue_bert_cased_preprocess`](https://tfhub.dev/jeongukjae/klue_bert_cased_preprocess/1)
+
+**How to convert above model?**
+
+```sh
+./export_klue.sh
+```
